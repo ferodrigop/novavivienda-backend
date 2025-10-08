@@ -1,0 +1,13 @@
+package com.novavivienda.backend.utils;
+
+import jakarta.servlet.http.HttpServletRequest;
+
+public class RequestUtils {
+    public static String getClientIP(HttpServletRequest request) {
+        String xfHeader = request.getHeader("X-Forwarded-For");
+        if (xfHeader == null) {
+            return request.getRemoteAddr();
+        }
+        return xfHeader.split(",")[0]; // for when it is behind a proxy
+    }
+}
