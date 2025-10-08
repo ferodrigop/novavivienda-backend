@@ -1,0 +1,75 @@
+spring:
+  application:
+    name: backend
+    base-url: ${SPRING_APPLICATION_BASE_URL:http://localhost:8080}
+  # JPA
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  # Database
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/novavivienda}
+    username: novavivienda
+    password: novavivienda123
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+  # Redis
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      password: ${SPRING_DATA_REDIS_PASSWORD:redis}
+      timeout: 3600000
+  cache:
+    redis:
+      time-to-live: 7200000
+    type: redis
+  # Flyway
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    schemas: public
+    baseline-on-migrate: true
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 50MB
+      max-request-size: 50MB
+      file-size-threshold: 2KB
+
+app:
+  security:
+    auth:
+      secret-key: ${AUTH_SECRET_KEY:<AUTH_SECRET_KEY>}
+    jwt:
+      secret-key: ${JWT_SECRET_KEY:<JWT_SECRET_KEY>}
+      access-token-expiration-time: 3600000 # 1h in millisecond
+      refresh-token-expiration-time: 604800000 # 1h in millisecond
+  password:
+    reset:
+      ttl: 600 # 10 minutes
+  sendgrid:
+    api-key: ${SPRING_SENDGRID_API_KEY}
+    from-email: ${SPRING_SENDGRID_FROM_EMAIL}
+    from-name: ${SPRING_SENDGRID_FROM_NAME}
+#    template:
+#      reset-password-email: ${SPRING_SENDGRID_TEMPLATE_RESET_PASSWORD_EMAIL}
+#      email-verification: ${SPRING_SENDGRID_TEMPLATE_EMAIL_VERIFICATION}
+#      low-stock-email: ${SPRING_SENDGRID_TEMPLATE_LOW_STOCK_EMAIL}
+  aws:
+    s3:
+      bucket-name: ${SPRING_AWS_S3_BUCKET_NAME:<AWS_S3_BUCKET_NAME>}
+      region: ${SPRING_AWS_S3_REGION:us-east-2}
+      access-key-id: ${SPRING_AWS_S3_ACCESS_KEY_ID:<AWS_S3_ACCESS_KEY_ID>}
+      secret-access-key: ${SPRING_AWS_S3_SECRET_ACCESS_KEY:<AWS_S3_SECRET_ACCESS_KEY>}
+  stripe:
+    api:
+      publishable-key: ${STRIPE_API_PUBLISHABLE_KEY}
+      secret-key: ${STRIPE_API_SECRET_KEY}
+      webhook-secret: ${STRIPE_API_WEBHOOK_SECRET}

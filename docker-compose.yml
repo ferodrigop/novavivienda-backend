@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  novavivienda-postgres:
+    image: postgres:15-alpine
+    container_name: novavivienda-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-novavivienda}
+      POSTGRES_USER: ${POSTGRES_USER:-novavivienda}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-novavivienda123}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - novavivienda-postgres-data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - novavivienda-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-novavivienda} -d ${POSTGRES_DB:-novavivienda}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  novavivienda-redis:
+    image: redis:7-alpine
+    container_name: novavivienda-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis123}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - novavivienda-redis-data:/data
+    networks:
+      - novavivienda-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  novavivienda-postgres-data:
+    driver: local
+  novavivienda-redis-data:
+    driver: local
+
+networks:
+  novavivienda-network:
+    driver: bridge
