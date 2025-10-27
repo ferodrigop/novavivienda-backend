@@ -74,14 +74,17 @@ public class SecurityConfig {
     }
 
     @Bean
+    public RoleHierarchy roleHierarchy() {
+        return RoleHierarchyImpl.withDefaultRolePrefix()
+                .role("SYSTEM_ADMIN").implies("AGENCY_ADMIN")
+                .role("AGENCY_ADMIN").implies("CLIENT")
+                .build();
+    }
+
+    @Bean
     public DefaultMethodSecurityExpressionHandler expressionHandler() {
         DefaultMethodSecurityExpressionHandler handler = new DefaultMethodSecurityExpressionHandler();
         handler.setRoleHierarchy(roleHierarchy());
         return handler;
-    }
-
-    @Bean
-    public RoleHierarchy roleHierarchy() {
-        return RoleHierarchyImpl.fromHierarchy("ROLE_SYSTEM_ADMIN > ROLE_AGENCY_ADMIN");
     }
 }
