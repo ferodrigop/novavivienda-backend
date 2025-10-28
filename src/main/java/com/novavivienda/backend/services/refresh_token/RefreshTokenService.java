@@ -1,40 +1,65 @@
 package com.novavivienda.backend.services.refresh_token;
 
-import com.novavivienda.backend.entities.refresh_token.RefreshToken;
+import com.novavivienda.backend.entities.refresh_token.RefreshTokenData;
 import com.novavivienda.backend.entities.user.User;
 import com.novavivienda.backend.exceptions.NotFoundException;
-import com.novavivienda.backend.repositories.refresh_token.RefreshTokenRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @RequiredArgsConstructor
 @Service
 public class RefreshTokenService {
-    private final RefreshTokenRepository refreshTokenRepository;
+    private final RedisTemplate<String, Object> redisTemplate;
+    private static final String REFRESH_TOKEN_KEY_PREFIX = "refresh_token:";
 
     @Value("${app.security.jwt.refresh-token-expiration-time}")
     private long refreshTokenExpirationMs;
 
-    @Transactional
-    public RefreshToken createNewRefreshToken(User user) {
-        RefreshToken refreshToken = new RefreshToken();
-        refreshToken.setUser(user);
-        refreshToken.setExpiresAt(Instant.now().plusMillis(refreshTokenExpirationMs));
-        return refreshTokenRepository.saveAndFlush(refreshToken);
+    public RefreshTokenData createNewRefreshToken(User user) {
+        UUID tokenId = UUID.randomUUID();
+        Instant now = Instant.now();
+        Instant expiresAt = now.plusMillis(refreshTokenExpirationMs);
+        
+        RefreshTokenData refreshTokenData = RefreshTokenData.builder()
+                .id(tokenId)
+                .userId(user.getId())
+                .expiresAt(expiresAt)
+                .createdAt(now)
+                .build();
+        
+        String key = REFRESH_TOKEN_KEY_PREFIX + tokenId;
+        redisTemplate.opsForValue().set(key, refreshTokenData, refreshTokenExpirationMs, TimeUnit.MILLISECONDS);
+        
+        return refreshTokenData;
     }
 
-    public RefreshToken findRefreshTokenByIdAndExpiresAtAfter(UUID refreshTokenId, Instant date) {
-        return refreshTokenRepository.findByIdAndExpiresAtAfter(refreshTokenId, date)
-                .orElseThrow(() -> new NotFoundException("Invalid or expired refresh token id"));
+    public RefreshTokenData findRefreshTokenByIdAndExpiresAtAfter(UUID refreshTokenId, Instant date) {
+        String key = REFRESH_TOKEN_KEY_PREFIX + refreshTokenId;
+        Object value = redisTemplate.opsForValue().get(key);
+        
+        if (value == null) {
+            throw new NotFoundException("Invalid or expired refresh token id");
+        }
+        
+        RefreshTokenData refreshTokenData = (RefreshTokenData) value;
+        
+        if (refreshTokenData.getExpiresAt().isBefore(date)) {
+            // Token has expired, delete it
+            redisTemplate.delete(key);
+            throw new NotFoundException("Invalid or expired refresh token id");
+        }
+        
+        return refreshTokenData;
     }
 
-    @Transactional
     public void deleteRefreshTokenById(UUID id) {
-        refreshTokenRepository.deleteById(id);
+        String key = REFRESH_TOKEN_KEY_PREFIX + id;
+        redisTemplate.delete(key);
     }
 }

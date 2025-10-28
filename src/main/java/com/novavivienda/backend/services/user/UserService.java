@@ -3,6 +3,7 @@ package com.novavivienda.backend.services.user;
 import com.novavivienda.backend.dtos.auth.SignUpRequestDto;
 import com.novavivienda.backend.entities.user.RoleName;
 import com.novavivienda.backend.entities.user.User;
+import com.novavivienda.backend.exceptions.NotFoundException;
 import com.novavivienda.backend.repositories.user.UserRepository;
 import com.novavivienda.backend.services.role.RoleService;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,11 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final RoleService roleService;
+
+    public User findUserById(UUID userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+    }
 
     @PreAuthorize("principal.id == #userId or hasRole('MANAGER')")
     public User getUserById(UUID userId) {

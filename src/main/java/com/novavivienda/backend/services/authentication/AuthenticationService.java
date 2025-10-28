@@ -1,7 +1,7 @@
 package com.novavivienda.backend.services.authentication;
 
 import com.novavivienda.backend.dtos.auth.*;
-import com.novavivienda.backend.entities.refresh_token.RefreshToken;
+import com.novavivienda.backend.entities.refresh_token.RefreshTokenData;
 import com.novavivienda.backend.entities.user.RoleName;
 import com.novavivienda.backend.entities.user.User;
 import com.novavivienda.backend.exceptions.EmailAlreadyInUseException;
@@ -66,22 +66,23 @@ public class AuthenticationService {
         );
         String accessToken = jwtService.generateAccessToken(signInRequestDto.email());
         User user = (User) authentication.getPrincipal();
-        RefreshToken refreshToken = refreshTokenService.createNewRefreshToken(user);
+        RefreshTokenData refreshTokenData = refreshTokenService.createNewRefreshToken(user);
         return SignInResponseDto.builder()
                 .accessToken(accessToken)
-                .refreshToken(refreshToken.getId())
+                .refreshToken(refreshTokenData.getId())
                 .build();
     }
 
     @Transactional
     public SignInResponseDto refreshToken(UUID refreshTokenId) {
-        RefreshToken refreshToken = refreshTokenService.findRefreshTokenByIdAndExpiresAtAfter(
+        RefreshTokenData refreshTokenData = refreshTokenService.findRefreshTokenByIdAndExpiresAtAfter(
                 refreshTokenId, Instant.now()
         );
-        final String newAccessToken = jwtService.generateAccessToken(refreshToken.getUser().getEmail());
+        User user = userService.findUserById(refreshTokenData.getUserId());
+        final String newAccessToken = jwtService.generateAccessToken(user.getEmail());
         return SignInResponseDto.builder()
                 .accessToken(newAccessToken)
-                .refreshToken(refreshToken.getId())
+                .refreshToken(refreshTokenData.getId())
                 .build();
     }
 
